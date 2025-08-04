@@ -1,6 +1,6 @@
 # API CI Testing Framework
 
-A comprehensive, production-ready API testing framework built with Postman and Newman for enterprise-grade CI/CD pipelines.
+API testing framework built with Postman and Newman for CI/CD pipelines.
 
 ## 🚀 Quick Start
 
