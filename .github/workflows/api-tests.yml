@@ -1,0 +1,83 @@
+name: API Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        environment: [local, staging]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install Newman
+      run: npm install -g newman newman-reporter-html newman-reporter-json
+      
+    - name: Create reports directory
+      run: mkdir -p reports
+      
+    - name: Run API tests
+      run: |
+        newman run collections/api-tests.json \
+          -e environments/${{ matrix.environment }}.json \
+          -r html,json,cli \
+          --reporter-html-export reports/report_${{ matrix.environment }}.html \
+          --reporter-json-export reports/report_${{ matrix.environment }}.json \
+          --timeout-request 10000 \
+          --timeout-script 10000
+          
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.environment }}
+        path: reports/
+        
+    - name: Comment PR with results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          try {
+            const reportPath = `reports/report_${{ matrix.environment }}.json`;
+            if (fs.existsSync(reportPath)) {
+              const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+              const stats = report.run.stats;
+              
+              const comment = `## API Test Results - ${{ matrix.environment }} Environment
+              
+              ✅ **Tests Passed**: ${stats.assertions.passed}
+              ❌ **Tests Failed**: ${stats.assertions.failed}
+              ⏱️ **Total Requests**: ${stats.requests.total}
+              🕐 **Total Time**: ${stats.timings.completed - stats.timings.started}ms
+              
+              📊 [View Detailed Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+              `;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+          } catch (error) {
+            console.log('Error creating comment:', error);
+          } 

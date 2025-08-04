@@ -1,0 +1,20 @@
+{
+  "name": "api-ci",
+  "version": "1.0.0",
+  "description": "API testing with Postman and Newman",
+  "scripts": {
+    "test": "./scripts/run_tests.sh",
+    "test:local": "newman run collections/api-tests.json -e environments/local.json -r html,json",
+    "test:staging": "newman run collections/api-tests.json -e environments/staging.json -r html,json",
+    "test:production": "newman run collections/api-tests.json -e environments/production.json -r html,json",
+    "setup": "npm install && npm install -g newman"
+  },
+  "keywords": ["api", "testing", "postman", "newman"],
+  "author": "Dev",
+  "license": "MIT",
+  "devDependencies": {
+    "newman": "^6.0.0",
+    "newman-reporter-html": "^1.0.5",
+    "newman-reporter-json": "^1.0.0"
+  }
+} 
